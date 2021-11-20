@@ -1,3 +1,4 @@
+# Stuff
 import os
 import wandb
 import random
@@ -8,7 +9,7 @@ from typing import List, Optional, Union, Dict
 # PyTorch
 import torch
 
-# Huggingface
+# Hugging Face
 import datasets
 import transformers
 from datasets import load_dataset, load_metric
@@ -48,7 +49,8 @@ class NLITrainer:
         epochs: int = 3,
         learning_rate: float = 2e-5,
         batch_size: int = 32,
-        eval_steps: int = 500,
+        eval_steps: int = 1000,
+        save_steps: int = 5000,
     ) -> None:
         self.checkpoint = checkpoint
         self.dataset_name = dataset_name
@@ -62,6 +64,7 @@ class NLITrainer:
         self.learning_rate = learning_rate
         self.batch_size = batch_size
         self.eval_steps = eval_steps
+        self.save_steps = save_steps
 
         self.raw_dataset: datasets.dataset_dict.DatasetDict
         self.tokenized_dataset: datasets.dataset_dict.DatasetDict
@@ -159,6 +162,7 @@ class NLITrainer:
             logging_steps=1000,
             evaluation_strategy="steps",
             eval_steps=self.eval_steps,
+            save_steps=self.save_steps,
             seed=self.random_state,
             report_to="wandb",
             load_best_model_at_end=True,
@@ -188,7 +192,7 @@ class NLITrainer:
         train_result = self.trainer.train()
         metrics = train_result.metrics
 
-        self.trainer.save_model()  # Saves the tokenizer too for easy upload
+        self.trainer.save_model()
         self.trainer.log_metrics("train", metrics)
         self.trainer.save_metrics("train", metrics)
         self.trainer.save_state()
@@ -209,7 +213,7 @@ class NLITrainer:
             self.output_dir, f"predictions_{self.dataset_name}.txt"
         )
         label_list = [
-            self.tokenized_dataset["train"].features["label"].int2str(i)
+            self.tokenized_dataset["train"].features["labels"].int2str(i)
             for i in range(3)
         ]
 
