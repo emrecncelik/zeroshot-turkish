@@ -1,5 +1,5 @@
 #!/bin/bash
-source /home/emrecan/tez/zeroshot-turkish/venv/bin/activate
+source $FINETUNE_ENV_ACTIVATE_DIR
 
 declare -a MODELS=("dbmdz/distilbert-base-turkish-cased" "dbmdz/bert-base-turkish-cased" "dbmdz/convbert-base-turkish-mc4-cased" )
 declare -a DATASETS=("snli_tr" "multinli_tr" )
