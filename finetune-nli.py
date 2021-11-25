@@ -23,6 +23,7 @@ from transformers import (
 from transformers.models.auto.configuration_auto import AutoConfig
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 
 def compute_metrics(eval_preds) -> Dict[str, float]:
