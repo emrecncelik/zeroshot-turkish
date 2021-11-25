@@ -266,8 +266,13 @@ if __name__ == "__main__":
                 test_split=setup["test_split"],
                 output_dir="/home/user/emrecan/models",
             )
+            try:
+                trainer.train()
+            except RuntimeError:
+                logger.info()
+                trainer.batch_size = trainer.batch_size // 2
+                trainer.train()
 
-            trainer.train()
             trainer.evaluate()
             trainer.predict()
             del trainer
