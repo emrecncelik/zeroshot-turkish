@@ -250,12 +250,19 @@ if __name__ == "__main__":
 
     for model in MODELS:
         for setup in setups:
+            # Exclude already trained model
+            if (
+                model == "dbmdz/bert-base-turkish-cased"
+                and setup["dataset"] == "snli_tr"
+            ):
+                continue
+
             trainer = NLITrainer(
                 checkpoint=model,
-                dataset_name="snli_tr",
-                validation_split="validation",
-                test_split="test",
-                output_dir="/content/drive/MyDrive/Thesis/trained_models",
+                dataset_name=setup["dataset"],
+                validation_split=setup["validation_split"],
+                test_split=setup["test_split"],
+                output_dir="~/emrecan/models",
             )
 
             trainer.train()
