@@ -50,7 +50,7 @@ class NLITrainer:
         learning_rate: float = 2e-5,
         batch_size: int = 32,
         eval_steps: int = 1000,
-        save_steps: int = 5000,
+        save_steps: int = 10000,
     ) -> None:
         self.checkpoint = checkpoint
         self.dataset_name = dataset_name
@@ -227,22 +227,37 @@ class NLITrainer:
 
 if __name__ == "__main__":
     MODELS = [
-        "dbmdz/bert-base-turkish-uncased",
         "dbmdz/bert-base-turkish-cased",
-        "dbmdz/bert-base-turkish-128k-uncased",
+        "dbmdz/convbert-base-turkish-mc4-cased",
         "dbmdz/bert-base-turkish-128k-cased",
+        "bert-base-multilingual-cased",
+        "xlm-roberta-base",
     ]
-    DATASETS = ["snli_tr", "multinli_tr"]
+    snli_setup = {
+        "dataset": "snli_tr",
+        "validation_split": "validation",
+        "test_split": "test",
+    }
+
+    multinli_setup = {
+        "dataset": "multinli_tr",
+        "validation_split": "validation_matched",
+        "test_split": "validation_mismatched",
+    }
+    setups = [snli_setup, multinli_setup]
 
     wandb.init(project="zeroshot-turkish", entity="emrecncelik")
-    trainer = NLITrainer(
-        checkpoint="dbmdz/bert-base-turkish-cased",
-        dataset_name="snli_tr",
-        validation_split="validation",
-        test_split="test",
-        output_dir="/content/drive/MyDrive/Thesis/trained_models",
-    )
 
-    trainer.train()
-    trainer.evaluate()
-    trainer.predict()
+    for model in MODELS:
+        for setup in setups:
+            trainer = NLITrainer(
+                checkpoint=model,
+                dataset_name="snli_tr",
+                validation_split="validation",
+                test_split="test",
+                output_dir="/content/drive/MyDrive/Thesis/trained_models",
+            )
+
+            trainer.train()
+            trainer.evaluate()
+            trainer.predict()
