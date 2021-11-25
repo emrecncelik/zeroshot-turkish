@@ -270,3 +270,4 @@ if __name__ == "__main__":
             trainer.train()
             trainer.evaluate()
             trainer.predict()
+            del trainer
