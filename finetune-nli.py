@@ -3,6 +3,7 @@ import os
 import wandb
 import random
 import logging
+import argparse
 import numpy as np
 from typing import List, Optional, Union, Dict
 
@@ -24,6 +25,7 @@ from transformers.models.auto.configuration_auto import AutoConfig
 
 logger = logging.getLogger(__name__)
 logger.setLevel(logging.DEBUG)
+logging.basicConfig(level=logging.DEBUG)
 
 
 def compute_metrics(eval_preds) -> Dict[str, float]:
@@ -34,27 +36,6 @@ def compute_metrics(eval_preds) -> Dict[str, float]:
     accuracy = _accuracy.compute(predictions=predictions, references=labels)
 
     return accuracy
-
-
-def train_avoiding_memory_error(trainer, model, setup):
-    try:
-        trainer.train()
-    except RuntimeError:
-        logger.info("Reducing batch size because of memory error.")
-        old_batch_size = trainer.batch_size
-        del trainer
-
-        trainer = NLITrainer(
-            checkpoint=model,
-            dataset_name=setup["dataset"],
-            validation_split=setup["validation_split"],
-            test_split=setup["test_split"],
-            output_dir="/home/user/emrecan/models",
-            batch_size=old_batch_size // 2,
-        )
-        logger.info(f"Batch size: {trainer.batch_size}")
-        trainer.train()
-    return trainer
 
 
 class NLITrainer:
@@ -249,46 +230,51 @@ class NLITrainer:
 
 
 if __name__ == "__main__":
-    MODELS = [
-        "dbmdz/bert-base-turkish-cased",
-        "dbmdz/convbert-base-turkish-mc4-cased",
-        "dbmdz/bert-base-turkish-128k-cased",
-        "bert-base-multilingual-cased",
-        "xlm-roberta-base",
-    ]
-    snli_setup = {
-        "dataset": "snli_tr",
-        "validation_split": "validation",
-        "test_split": "test",
-    }
 
-    multinli_setup = {
-        "dataset": "multinli_tr",
-        "validation_split": "validation_matched",
-        "test_split": "validation_mismatched",
-    }
-    setups = [snli_setup, multinli_setup]
+    parser = argparse.ArgumentParser(description="Description of your program")
+    parser.add_argument(
+        "-m", "--model", help="Name or path of the model checkpoint", required=True
+    )
+    parser.add_argument(
+        "-d", "--dataset", help="Name or path of the dataset", required=True
+    )
+
+    args = vars(parser.parse_args())
+
+    # MODELS = [
+    #     "dbmdz/bert-base-turkish-cased",
+    #     "dbmdz/convbert-base-turkish-mc4-cased",
+    #     "dbmdz/bert-base-turkish-128k-cased",
+    #     "bert-base-multilingual-cased",
+    #     "xlm-roberta-base",
+    # ]
+
+    if args["dataset"] == "snli_tr":
+        setup = {
+            "dataset": "snli_tr",
+            "validation_split": "validation",
+            "test_split": "test",
+        }
+    elif args["dataset"] == "multinli_tr":
+        multinli_setup = {
+            "dataset": "multinli_tr",
+            "validation_split": "validation_matched",
+            "test_split": "validation_mismatched",
+        }
+
+    model = args["model"]
 
     wandb.init(project="zeroshot-turkish", entity="emrecncelik")
 
-    for model in MODELS:
-        for setup in setups:
-            # Exclude already trained model
-            if (
-                model == "dbmdz/bert-base-turkish-cased"
-                and setup["dataset"] == "snli_tr"
-            ):
-                continue
+    trainer = NLITrainer(
+        checkpoint=model,
+        dataset_name=setup["dataset"],
+        validation_split=setup["validation_split"],
+        test_split=setup["test_split"],
+        output_dir="/home/user/emrecan/models",
+    )
 
-            trainer = NLITrainer(
-                checkpoint=model,
-                dataset_name=setup["dataset"],
-                validation_split=setup["validation_split"],
-                test_split=setup["test_split"],
-                output_dir="/home/user/emrecan/models",
-            )
-
-            train_avoiding_memory_error(trainer, model, setup)
-            trainer.evaluate()
-            trainer.predict()
-            del trainer
+    trainer.train()
+    trainer.evaluate()
+    trainer.predict()
+    del trainer
