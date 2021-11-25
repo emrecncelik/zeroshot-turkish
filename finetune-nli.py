@@ -256,7 +256,7 @@ if __name__ == "__main__":
             "test_split": "test",
         }
     elif args["dataset"] == "multinli_tr":
-        multinli_setup = {
+        setup = {
             "dataset": "multinli_tr",
             "validation_split": "validation_matched",
             "test_split": "validation_mismatched",
