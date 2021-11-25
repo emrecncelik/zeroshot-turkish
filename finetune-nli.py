@@ -269,7 +269,7 @@ if __name__ == "__main__":
             try:
                 trainer.train()
             except RuntimeError:
-                logger.info()
+                logger.info("Reducing batch size because of memory error.")
                 trainer.batch_size = trainer.batch_size // 2
                 trainer.train()
 
