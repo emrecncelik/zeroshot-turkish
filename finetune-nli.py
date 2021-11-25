@@ -210,7 +210,8 @@ class NLITrainer:
         ).predictions
         predictions = np.argmax(predictions, axis=1)
         pred_file = os.path.join(
-            self.output_dir, f"predictions_{self.dataset_name}.txt"
+            self.output_dir.replace("~", "/home/user"),
+            f"predictions_{self.dataset_name}.txt",
         )
         label_list = [
             self.tokenized_dataset["train"].features["labels"].int2str(i)
@@ -218,7 +219,7 @@ class NLITrainer:
         ]
 
         if self.trainer.is_world_process_zero():
-            with open(pred_file, "w") as writer:
+            with open(pred_file, "a+") as writer:
                 writer.write("index\tprediction\n")
                 for index, item in enumerate(predictions):
                     item = label_list[item]
