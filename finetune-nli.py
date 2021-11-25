@@ -6,6 +6,7 @@ import logging
 import argparse
 import numpy as np
 from typing import List, Optional, Union, Dict
+from codecarbon import OfflineEmissionsTracker
 
 # PyTorch
 import torch
@@ -24,8 +25,9 @@ from transformers import (
 from transformers.models.auto.configuration_auto import AutoConfig
 
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-logging.basicConfig(level=logging.DEBUG)
+logger.setLevel(logging.INFO)
+logging.basicConfig(level=logging.INFO)
+wandb.init(project="zeroshot-turkish", entity="emrecncelik")
 
 
 def compute_metrics(eval_preds) -> Dict[str, float]:
@@ -139,6 +141,13 @@ class NLITrainer:
         self.model = AutoModelForSequenceClassification.from_pretrained(
             self.checkpoint, config=self.config
         )
+        try:
+            logger.info("\tApplying gradient checkpointing")
+            self.model.gradient_checkpointing_enable()
+        except ValueError:
+            logger.info(
+                f"\tGradient checkpointing not supported by model {self.checkpoint}"
+            )
 
     def prepare_data(self) -> None:
         logger.info("======== Preparing the dataset for training ========")
@@ -203,51 +212,64 @@ class NLITrainer:
     def evaluate(self):
         logger.info("======== Running evaluation ========")
         metrics = self.trainer.evaluate()
-        self.trainer.log_metrics("eval", metrics)
-        self.trainer.save_metrics("eval", metrics)
+        self.trainer.log_metrics(self.validation_split, metrics)
+        self.trainer.save_metrics(self.validation_split, metrics)
 
-    def predict(self):
-        logger.info(f"======== Predicting results for {self.dataset_name} ========")
-        predictions = self.trainer.predict(
-            self.tokenized_dataset[self.test_split], metric_key_prefix="predict"
-        ).predictions
-        predictions = np.argmax(predictions, axis=1)
-        pred_file = os.path.join(
-            self.output_dir,
-            f"predictions_{self.dataset_name}.txt",
-        )
-        label_list = [
-            self.tokenized_dataset["train"].features["labels"].int2str(i)
-            for i in range(3)
-        ]
-
-        if self.trainer.is_world_process_zero():
-            with open(pred_file, "a+") as writer:
-                writer.write("index\tprediction\n")
-                for index, item in enumerate(predictions):
-                    item = label_list[item]
-                    writer.write(f"{index}\t{item}\n")
+        metrics = self.trainer.evaluate(self.tokenized_dataset[self.test_split])
+        self.trainer.log_metrics(self.test_split, metrics)
+        self.trainer.save_metrics(self.test_split, metrics)
 
 
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(description="Description of your program")
-    parser.add_argument(
-        "-m", "--model", help="Name or path of the model checkpoint", required=True
+    parser = argparse.ArgumentParser(
+        description="Fine-tune transformers on Turkish NLI data"
     )
     parser.add_argument(
-        "-d", "--dataset", help="Name or path of the dataset", required=True
+        "-m",
+        "--model",
+        help="Name or path of the model checkpoint",
+        required=True,
     )
-
+    parser.add_argument(
+        "-d",
+        "--dataset",
+        help="Name or path of the dataset",
+        required=True,
+    )
+    parser.add_argument(
+        "-b",
+        "--batch_size",
+        help="Training and evaluation batch size",
+        required=False,
+        default=32,
+        type=int,
+    )
+    parser.add_argument(
+        "-t",
+        "--max_train_examples",
+        help="Maximum num. of training examples",
+        required=False,
+        default=None,
+        type=int,
+    )
+    parser.add_argument(
+        "-e",
+        "--max_eval_examples",
+        help="Maximum num. of evaluation examples",
+        required=False,
+        default=None,
+        type=int,
+    )
+    parser.add_argument(
+        "-o",
+        "--output_dir",
+        help="Directory for model output",
+        required=False,
+        default="",
+        type=str,
+    )
     args = vars(parser.parse_args())
-
-    # MODELS = [
-    #     "dbmdz/bert-base-turkish-cased",
-    #     "dbmdz/convbert-base-turkish-mc4-cased",
-    #     "dbmdz/bert-base-turkish-128k-cased",
-    #     "bert-base-multilingual-cased",
-    #     "xlm-roberta-base",
-    # ]
 
     if args["dataset"] == "snli_tr":
         setup = {
@@ -261,20 +283,29 @@ if __name__ == "__main__":
             "validation_split": "validation_matched",
             "test_split": "validation_mismatched",
         }
-
     model = args["model"]
 
-    wandb.init(project="zeroshot-turkish", entity="emrecncelik")
+    # Track carbon emmisions
+    tracker = OfflineEmissionsTracker(
+        country_iso_code="TUR", output_dir=args["output_dir"]
+    )
+    tracker.start()
 
+    # Start training
     trainer = NLITrainer(
         checkpoint=model,
         dataset_name=setup["dataset"],
         validation_split=setup["validation_split"],
         test_split=setup["test_split"],
-        output_dir="/home/user/emrecan/models",
+        output_dir=args["output_dir"],
+        batch_size=args["batch_size"],
+        max_train_examples=args["max_train_examples"],
+        max_eval_examples=args["max_eval_examples"],
     )
 
     trainer.train()
     trainer.evaluate()
-    trainer.predict()
-    del trainer
+
+    # Log emmisions
+    emmisions = tracker.stop()
+    wandb.log({"carbon_emmision": emmisions})
