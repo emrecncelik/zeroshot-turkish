@@ -270,7 +270,17 @@ if __name__ == "__main__":
                 trainer.train()
             except RuntimeError:
                 logger.info("Reducing batch size because of memory error.")
-                trainer.batch_size = trainer.batch_size // 2
+                old_batch_size = trainer.batch_size
+                del trainer
+
+                trainer = NLITrainer(
+                    checkpoint=model,
+                    dataset_name=setup["dataset"],
+                    validation_split=setup["validation_split"],
+                    test_split=setup["test_split"],
+                    output_dir="/home/user/emrecan/models",
+                    batch_size=old_batch_size // 2,
+                )
                 trainer.train()
 
             trainer.evaluate()
