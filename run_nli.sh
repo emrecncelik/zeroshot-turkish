@@ -12,7 +12,5 @@ do
                             --dataset $DATASET \
                             --batch_size 16 \
                             --output_dir /home/emrecan/tez/zeroshot-turkish/models \
-                            --max_train_examples 100 \
-                            --max_eval_examples 100
     done
 done
