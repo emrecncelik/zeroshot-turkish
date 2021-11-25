@@ -210,7 +210,7 @@ class NLITrainer:
         ).predictions
         predictions = np.argmax(predictions, axis=1)
         pred_file = os.path.join(
-            self.output_dir.replace("~", "/home/user"),
+            self.output_dir,
             f"predictions_{self.dataset_name}.txt",
         )
         label_list = [
@@ -263,7 +263,7 @@ if __name__ == "__main__":
                 dataset_name=setup["dataset"],
                 validation_split=setup["validation_split"],
                 test_split=setup["test_split"],
-                output_dir="~/emrecan/models",
+                output_dir="/home/user/emrecan/models",
             )
 
             trainer.train()
