@@ -36,6 +36,27 @@ def compute_metrics(eval_preds) -> Dict[str, float]:
     return accuracy
 
 
+def train_avoiding_memory_error(trainer, model, setup):
+    try:
+        trainer.train()
+    except RuntimeError:
+        logger.info("Reducing batch size because of memory error.")
+        old_batch_size = trainer.batch_size
+        del trainer
+
+        trainer = NLITrainer(
+            checkpoint=model,
+            dataset_name=setup["dataset"],
+            validation_split=setup["validation_split"],
+            test_split=setup["test_split"],
+            output_dir="/home/user/emrecan/models",
+            batch_size=old_batch_size // 2,
+        )
+        logger.info(f"Batch size: {trainer.batch_size}")
+        trainer.train()
+    return trainer
+
+
 class NLITrainer:
     def __init__(
         self,
@@ -266,23 +287,8 @@ if __name__ == "__main__":
                 test_split=setup["test_split"],
                 output_dir="/home/user/emrecan/models",
             )
-            try:
-                trainer.train()
-            except RuntimeError:
-                logger.info("Reducing batch size because of memory error.")
-                old_batch_size = trainer.batch_size
-                del trainer
 
-                trainer = NLITrainer(
-                    checkpoint=model,
-                    dataset_name=setup["dataset"],
-                    validation_split=setup["validation_split"],
-                    test_split=setup["test_split"],
-                    output_dir="/home/user/emrecan/models",
-                    batch_size=old_batch_size // 2,
-                )
-                trainer.train()
-
+            train_avoiding_memory_error(trainer, model, setup)
             trainer.evaluate()
             trainer.predict()
             del trainer
