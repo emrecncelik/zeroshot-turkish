@@ -6,7 +6,6 @@ import logging
 import argparse
 import numpy as np
 from typing import List, Optional, Union, Dict
-from codecarbon import OfflineEmissionsTracker
 
 # PyTorch
 import torch
@@ -285,12 +284,6 @@ if __name__ == "__main__":
         }
     model = args["model"]
 
-    # Track carbon emmisions
-    tracker = OfflineEmissionsTracker(
-        country_iso_code="TUR", output_dir=args["output_dir"]
-    )
-    tracker.start()
-
     # Start training
     trainer = NLITrainer(
         checkpoint=model,
@@ -305,7 +298,3 @@ if __name__ == "__main__":
 
     trainer.train()
     trainer.evaluate()
-
-    # Log emmisions
-    emmisions = tracker.stop()
-    wandb.log({"carbon_emmision": emmisions})
