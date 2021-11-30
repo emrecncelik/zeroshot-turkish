@@ -237,13 +237,13 @@ class NLITrainer:
                 self.trainer.save_metrics(split, metrics)
 
         else:
-        metrics = self.trainer.evaluate()
-        self.trainer.log_metrics(self.validation_split, metrics)
-        self.trainer.save_metrics(self.validation_split, metrics)
+            metrics = self.trainer.evaluate()
+            self.trainer.log_metrics(self.validation_split, metrics)
+            self.trainer.save_metrics(self.validation_split, metrics)
 
-        metrics = self.trainer.evaluate(self.tokenized_dataset[self.test_split])
-        self.trainer.log_metrics(self.test_split, metrics)
-        self.trainer.save_metrics(self.test_split, metrics)
+            metrics = self.trainer.evaluate(self.tokenized_dataset[self.test_split])
+            self.trainer.log_metrics(self.test_split, metrics)
+            self.trainer.save_metrics(self.test_split, metrics)
 
 
 if __name__ == "__main__":
