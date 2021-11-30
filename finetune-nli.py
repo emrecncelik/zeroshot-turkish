@@ -1,5 +1,6 @@
 # Stuff
 import os
+from datasets.arrow_dataset import concatenate_datasets
 import wandb
 import random
 import logging
@@ -94,6 +95,26 @@ class NLITrainer:
         logger.info(f"======== Loading dataset: {self.dataset_name} ========")
         if self.dataset_name in ["snli_tr", "multinli_tr"]:
             self.raw_dataset = load_dataset("nli_tr", self.dataset_name)
+
+        elif self.dataset_name == "allnli_tr":
+            # Concatenate two datasets
+            raw_snli = load_dataset("nli_tr", "snli_tr")
+            raw_multnli = load_dataset("nli_tr", "multinli_tr")
+            self.raw_dataset = raw_snli
+
+            self.raw_dataset["train"] = concatenate_datasets(
+                [raw_snli["train"], raw_multnli["train"]]
+            )
+            self.raw_dataset["validation_mismatched"] = raw_multnli[
+                "validation_mismatched"
+            ]
+            self.raw_dataset["validation_matched"] = raw_multnli["validation_matched"]
+
+        else:
+            raise ValueError(
+                f"Dataset name {self.dataset_name} is not an option. Use 'mergenli_tr', 'snli_tr' or 'multinli_tr'."
+            )
+
             self.raw_dataset = self.raw_dataset.filter(
                 lambda example: example["label"] != -1
             )
@@ -105,13 +126,7 @@ class NLITrainer:
                 self.raw_dataset[self.validation_split] = self.raw_dataset[
                     self.validation_split
                 ].select(range(self.max_eval_examples))
-        elif self.dataset_name == "mergenli_tr":
-            # Concatenate two datasets
-            raise NotImplementedError("Merge fine-tune is not implemented yet.")
-        else:
-            raise ValueError(
-                f"Dataset name {self.dataset_name} is not an option. Use 'mergenli_tr', 'snli_tr' or 'multinli_tr'."
-            )
+
         logger.info(f"\tTrain shape: {self.raw_dataset['train'].shape}")
         logger.info(
             f"\tValidation shape: {self.raw_dataset[self.validation_split].shape}"
@@ -210,6 +225,18 @@ class NLITrainer:
 
     def evaluate(self):
         logger.info("======== Running evaluation ========")
+        if self.dataset_name == "allnli_tr":
+            for split in [
+                "validation_matched",
+                "validation_mismatched",
+                "test",
+                "validation",
+            ]:
+                metrics = self.trainer.evaluate(self.tokenized_dataset[split])
+                self.trainer.log_metrics(split, metrics)
+                self.trainer.save_metrics(split, metrics)
+
+        else:
         metrics = self.trainer.evaluate()
         self.trainer.log_metrics(self.validation_split, metrics)
         self.trainer.save_metrics(self.validation_split, metrics)
@@ -282,6 +309,13 @@ if __name__ == "__main__":
             "validation_split": "validation_matched",
             "test_split": "validation_mismatched",
         }
+    elif args["dataset"] == "allnli_tr":
+        setup = {
+            "dataset": "allnli_tr",
+            "validation_split": "validation_matched",
+            "test_split": "validation_mismatched",
+        }
+
     model = args["model"]
 
     # Start training
