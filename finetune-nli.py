@@ -109,23 +109,26 @@ class NLITrainer:
                 "validation_mismatched"
             ]
             self.raw_dataset["validation_matched"] = raw_multnli["validation_matched"]
-
+            self.raw_dataset["train"] = self.raw_dataset["train"].shuffle(
+                seed=self.random_state
+            )
         else:
             raise ValueError(
                 f"Dataset name {self.dataset_name} is not an option. Use 'mergenli_tr', 'snli_tr' or 'multinli_tr'."
             )
 
-            self.raw_dataset = self.raw_dataset.filter(
-                lambda example: example["label"] != -1
+        self.raw_dataset = self.raw_dataset.filter(
+            lambda example: example["label"] != -1
+        )
+
+        if self.max_train_examples:
+            self.raw_dataset["train"] = self.raw_dataset["train"].select(
+                range(self.max_train_examples)
             )
-            if self.max_train_examples:
-                self.raw_dataset["train"] = self.raw_dataset["train"].select(
-                    range(self.max_train_examples)
-                )
-            if self.max_eval_examples:
-                self.raw_dataset[self.validation_split] = self.raw_dataset[
-                    self.validation_split
-                ].select(range(self.max_eval_examples))
+        if self.max_eval_examples:
+            self.raw_dataset[self.validation_split] = self.raw_dataset[
+                self.validation_split
+            ].select(range(self.max_eval_examples))
 
         logger.info(f"\tTrain shape: {self.raw_dataset['train'].shape}")
         logger.info(
