@@ -196,6 +196,7 @@ class NLITrainer:
             report_to="wandb",
             load_best_model_at_end=True,
             metric_for_best_model="eval_accuracy",
+            push_to_hub=True,
         )
 
         self.trainer = Trainer(
@@ -225,6 +226,7 @@ class NLITrainer:
         self.trainer.log_metrics("train", metrics)
         self.trainer.save_metrics("train", metrics)
         self.trainer.save_state()
+        self.trainer.push_to_hub()
 
     def evaluate(self):
         logger.info("======== Running evaluation ========")
