@@ -133,3 +133,6 @@ wandb/
 
 # Model files
 models/
+
+# Data files
+datasets/
