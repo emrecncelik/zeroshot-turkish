@@ -1,5 +1,5 @@
 # Zeroshot Turkish
-
+Fine-tuning script based on Hugging Face course and examples from transformers. Definitely not a good/clean one though.
 
 ### Fine-tuning on NLI
 ```bash
