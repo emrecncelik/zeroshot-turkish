@@ -38,6 +38,7 @@ def mild_cleaning(text):
         "\n": " ",
         "\t": " ",
         "﻿": " ",
+        "...Devamını oku": " ",
     }
     for key, value in mistakes.items():
         text = " ".join(text.replace(key, value).strip().split()).strip()

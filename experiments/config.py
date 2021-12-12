@@ -26,7 +26,7 @@ NSP_MODELS = [
 
 
 TEMPLATES = {
-    "emotion": [
+    "emotion_or_sentiment": [
         "Bu metnin içerdiği duygu {}",
         "Bu metnin içerdiği duygu çoğunlukla {}",
         "Bu metin {} duygular içeriyor",
@@ -52,56 +52,66 @@ TEMPLATES = {
         "Bu şikayetin içeriği {} ile ilgili",
         "Bu şikayetin içeriği çoğunlukla {} ile ilgili",
     ],
+    "offensive_lang": [],
 }
 
 DATASETS = [
     {
         "name": "17bintweet",
-        "task": "sentiment",
+        "context": "emotion_or_sentiment",
         "from_": "local",
+        "label_preprocess": ["deasciify"],
     },
     {
         "name": "tc32",
-        "task": "review",
+        "context": "review",
         "from_": "local",
         "label_col": "category",
+        "label_preprocess": ["deasciify", "remove_punct"],
     },
     {
         "name": "ttc3600",
-        "task": "news",
+        "context": "news",
         "from_": "local",
         "label_col": "label",
+        "label_preprocess": ["deasciify"],
     },
     {
         "name": "ttc4900",
-        "task": "news",
+        "context": "news",
         "from_": "local",
         "label_col": "category",
+        "label_preprocess": ["deasciify"],
     },
     {
         "name": "ruh_hali",
-        "task": "emotion",
+        "context": "emotion_or_sentiment",
         "from_": "local",
+        "label_preprocess": ["deasciify"],
     },
     {
         "name": "offenseval2020_tr",
-        "task": "other",
+        "context": "offensive_lang",
         "from_": "hf",
         "label_col": "subtask_a",
         "text_col": "tweet",
+        "label_map": {"0": "saldırgan değil", "1": "saldırgan"},
     },
     {
         "name": "interpress_news_category_tr",
-        "task": "other",
+        "context": "news",
         "from_": "hf",
         "label_col": "category",
         "text_col": "content",
+        "label_preprocess": ["deasciify"],
+        "label_map": True,
     },
     {
         "name": "turkish_product_reviews",
-        "task": "sentiment",
+        "context": "emotion_or_sentiment",
         "from_": "hf",
         "label_col": "sentiment",
         "text_col": "sentence",
+        "label_map": {"1": "olumlu", "0": "olumsuz"},
     },
 ]
