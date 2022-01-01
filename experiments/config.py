@@ -52,7 +52,6 @@ TEMPLATES = {
         "Bu şikayetin içeriği {} ile ilgili",
         "Bu şikayetin içeriği çoğunlukla {} ile ilgili",
     ],
-    "offensive_lang": [],
 }
 
 DATASETS = [
