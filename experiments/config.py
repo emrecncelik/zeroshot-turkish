@@ -1,6 +1,8 @@
 import os
 
-DATA_PATH = os.getenv("DATA_PATH", "/home/emrecan/tez/zeroshot-turkish/datasets")
+ROOT_DIR = os.getenv("ZEROSHOT_ROOT_DIR", "/home/emrecan/tez/zeroshot-turkish")
+DATA_DIR = os.path.join(ROOT_DIR, "datasets")
+PLOTS_DIR = os.path.join(ROOT_DIR, "plots")
 
 NLI_MODELS = [
     "emrecan/distilbert-base-turkish-cased-allnli_tr",

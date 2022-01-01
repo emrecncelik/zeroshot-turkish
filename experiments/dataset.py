@@ -1,15 +1,23 @@
+from __future__ import annotations
+
 # Python stuff
+import os
 import logging
 import multiprocessing
 from os.path import join
 from typing import List, Dict, Union
+from collections import Counter, OrderedDict
+
+# Plotting
+import numpy as np
+import matplotlib.pyplot as plt
 
 # Hugging Face
 from datasets import load_dataset
 from datasets import Dataset as HFDataset
 from datasets.dataset_dict import DatasetDict as HFDatasetDict
 
-from experiments.config import DATA_PATH
+from experiments.config import DATA_DIR, PLOTS_DIR
 from experiments.preprocess import Preprocessor
 
 
@@ -68,7 +76,7 @@ class Dataset:
         elif self.from_ == "local":
             self.dataset = HFDatasetDict()
             for split in ["train", "test"]:
-                file_path = join(DATA_PATH, self.name, f"formatted_{split}.csv")
+                file_path = join(DATA_DIR, self.name, f"formatted_{split}.csv")
                 try:
                     dataset = HFDataset.from_csv(file_path)
                     dataset = dataset.rename_columns(
@@ -158,7 +166,37 @@ class Dataset:
 
         return self
 
-    def compute_statistics(self, split: str = "train"):
+    def _compute_label_counts(self) -> None:
+        for split in ["train", "test"]:
+            if split in self.dataset:
+                counter = Counter(self.dataset[split]["label"])
+                counter = OrderedDict(sorted(counter.items()))
+                self.stats[f"label_counts_{split}"] = counter
+
+    def _plot_label_counts(self) -> None:
+        fig = plt.figure()
+        ax = fig.add_axes([0, 0, 1, 1])
+
+        labels, values = zip(*self.stats["label_counts_train"].items())
+        y_pos = np.arange(len(labels))
+        ax.barh(y_pos, values, color="tab:orange", height=0.25, label="train")
+
+        labels, values = zip(*self.stats["label_counts_test"].items())
+        ax.barh(y_pos + 0.25, values, color="tab:blue", height=0.25, label="test")
+
+        ax.set_xlabel("Frequency")
+        ax.set_title(f"Label distribution of {self.name}")
+        ax.set_yticks(y_pos + 0.125, labels=labels)
+        ax.legend()
+
+        save_dir = os.path.join(PLOTS_DIR, "label_counts")
+        if not os.path.exists(save_dir):
+            os.mkdir(save_dir)
+
+        fig.savefig(
+            os.path.join(save_dir, f"{self.name}_labels.png"),
+            bbox_inches="tight",
+        )
         pass
 
     def compute_label_distribution(self, split: str = "train"):
