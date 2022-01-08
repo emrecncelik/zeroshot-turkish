@@ -166,6 +166,21 @@ class Dataset:
 
         return self
 
+    def compute_dataset_statistics(self):
+        self._get_dataset_size()
+        self._compute_label_counts()
+        self._compute_token_counts()
+        return self
+
+    def _get_dataset_size(self):
+        counts = {"train": 0, "test": 0, "total": 0}
+        for split in ["train", "test"]:
+            if split in self.dataset:
+                counts[split] += len(self.dataset[split])
+
+        counts["total"] = counts["test"] + counts["train"]
+        self.stats["dataset_size"] = counts
+
     def _compute_label_counts(self) -> None:
         for split in ["train", "test"]:
             if split in self.dataset:
@@ -185,7 +200,8 @@ class Dataset:
         ax.barh(y_pos + 0.25, values, color="tab:blue", height=0.25, label="test")
 
         ax.set_xlabel("Frequency")
-        ax.set_title(f"Label distribution of {self.name}")
+        ax.set_ylabel("Label")
+        # ax.set_title(f"Label distribution of {self.name}")
         ax.set_yticks(y_pos + 0.125, labels=labels)
         ax.legend()
 
