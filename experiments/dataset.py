@@ -9,6 +9,7 @@ from typing import List, Dict, Union
 from collections import Counter, OrderedDict
 
 # Plotting
+import matplotlib
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -20,8 +21,16 @@ from datasets.dataset_dict import DatasetDict as HFDatasetDict
 from experiments.config import DATA_DIR, PLOTS_DIR
 from experiments.preprocess import Preprocessor
 
+from nltk.tokenize import word_tokenize
 
 logger = logging.getLogger(__name__)
+
+# TODO Allow user to give labels for the dataset
+# also set labels in the HFDataset  when loading from local csv.
+
+font = {"family": "normal", "size": 12}
+matplotlib.rc("font", **font)
+matplotlib.rcParams["figure.figsize"] = (8, 6)
 
 
 class Dataset:
@@ -46,6 +55,7 @@ class Dataset:
         self.text_preprocess = text_preprocess
         self.label_preprocess = label_preprocess
         self.label_map = label_map
+        self.stats = {}
 
         if text_preprocess:
             self.text_preprocessor = Preprocessor(steps=self.text_preprocess)
@@ -59,6 +69,12 @@ class Dataset:
         return f"{self.name}_{self.context}_{self.from_}"
 
     def load_dataset(self):
+        """Loads the dataset from local or from Hugging Face Hub.
+
+        Returns:
+            Dataset: Returns self to allow function aggregation
+        """
+
         logger.info(f"======== Loading dataset {self.name} from {self.from_} ========")
         if self.from_ == "hf":
             self.dataset = load_dataset(self.name)
@@ -95,6 +111,16 @@ class Dataset:
         return self
 
     def train_test_split(self, test_size: float, random_state: int, **kwargs):
+        """Splits data into train and test sets if data does not have
+        a pre-determined test split
+
+        Args:
+            test_size (float): Percentage of test size
+            random_state (int): Allows reproducibility
+
+        Returns:
+            Dataset: Returns self to allow function aggregation
+        """
         if not "test" in self.dataset:
             self.dataset = self.dataset["train"].train_test_split(
                 test_size=test_size, seed=random_state, **kwargs
@@ -102,6 +128,15 @@ class Dataset:
         return self
 
     def preprocess(self, column: str):
+        """Applies preprocessing steps given in initialization. It can be applied to
+        text or label columns.
+
+        Args:
+            column (str): can be "text" or "label"
+
+        Returns:
+            Dataset: Returns self to allow function aggregation
+        """
         if column == "label":
             if not self.label_preprocess:
                 return self
@@ -129,7 +164,8 @@ class Dataset:
 
         for split in self.dataset.keys():
             self.dataset[split] = self.dataset[split].map(
-                _preprocess_col, num_proc=multiprocessing.cpu_count()
+                _preprocess_col,
+                num_proc=multiprocessing.cpu_count(),
             )
 
         logger.info(f"\tAfter:")
@@ -139,6 +175,12 @@ class Dataset:
         return self
 
     def map_labels(self):
+        """Maps labels in the dataset to corresponding values
+        in the self.label_map dictionary.
+
+        Returns:
+            Dataset: Returns self to allow function aggregation
+        """
         if self.label_map:
             logger.info(f"{self}")
             logger.info(f"\tBefore:")
@@ -231,5 +273,5 @@ class Dataset:
         )
         self.stats["total_unique_tokens"] = len(counter)
 
-    def compute_label_distribution(self, split: str = "train"):
+    def _plot_token_counts_distribution(self):
         pass
