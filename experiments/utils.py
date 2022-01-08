@@ -5,6 +5,22 @@ import pandas as pd
 DATA_PATH = os.getenv("DATA_PATH", "/home/emrecan/tez/zeroshot-turkish/datasets")
 
 
+def mild_cleaning(text):
+    mistakes = {
+        "&ccedil": "ç",
+        "&uuml;": "ü",
+        "&ouml;": "ö",
+        "\n": " ",
+        "\t": " ",
+        "﻿": " ",
+        "...Devamını oku": " ",
+    }
+    for key, value in mistakes.items():
+        text = " ".join(text.replace(key, value).strip().split()).strip()
+
+    return text
+
+
 def format_txt_dataset(
     dir_to_folders: str,
     encoding: str = None,
@@ -30,23 +46,19 @@ def format_txt_dataset(
     data.to_csv(os.path.join(dir_to_folders, "formatted.csv"), index=False)
 
 
-def mild_cleaning(text):
-    mistakes = {
-        "&ccedil": "ç",
-        "&uuml;": "ü",
-        "&ouml;": "ö",
-        "\n": " ",
-        "\t": " ",
-        "﻿": " ",
-        "...Devamını oku": " ",
-    }
-    for key, value in mistakes.items():
-        text = " ".join(text.replace(key, value).strip().split()).strip()
+def format_tremo(filepath: str):
+    data = pd.read_xml(filepath)
+    data = data[["Entry", "ValidatedEmotion"]]
+    data.columns = ["text", "label"]
 
-    return text
+    filename = filepath.split("/")
+    filename[-1] = "formatted_train.csv"
+    filename = "/".join(filename)
+    data.to_csv(filename, index=False)
 
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
-    format_txt_dataset(os.path.join(DATA_PATH, "ruh_hali"), encoding="cp1254")
-    format_txt_dataset(os.path.join(DATA_PATH, "ttc3600"), encoding="utf-8")
+    # format_txt_dataset(os.path.join(DATA_PATH, "ruh_hali"), encoding="cp1254")
+    # format_txt_dataset(os.path.join(DATA_PATH, "ttc3600"), encoding="utf-8")
+    format_tremo(os.path.join(DATA_PATH, "tremo", "TREMODATA.xml"))
