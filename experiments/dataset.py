@@ -197,7 +197,23 @@ class Dataset:
             os.path.join(save_dir, f"{self.name}_labels.png"),
             bbox_inches="tight",
         )
-        pass
+
+    def _compute_token_counts(self):
+        counter = Counter()
+        for split in ["train", "test"]:
+            token_counts = []
+            if split in self.dataset:
+                for text in self.dataset[split]["text"]:
+                    tokenized = word_tokenize(text)
+                    token_counts.append(len(tokenized))
+                    counter.update(tokenized)
+
+                self.stats[f"token_counts_{split}"] = token_counts
+
+        self.stats["total_tokens"] = sum(
+            [sum(self.stats[key]) for key in self.stats.keys() if "token_counts" in key]
+        )
+        self.stats["total_unique_tokens"] = len(counter)
 
     def compute_label_distribution(self, split: str = "train"):
         pass
