@@ -2,6 +2,7 @@ from __future__ import annotations
 
 # Python stuff
 import os
+import pickle
 import logging
 import multiprocessing
 from os.path import join
@@ -28,9 +29,9 @@ logger = logging.getLogger(__name__)
 # TODO Allow user to give labels for the dataset
 # also set labels in the HFDataset  when loading from local csv.
 
-font = {"family": "normal", "size": 12}
+font = {"family": "normal", "size": 14}
 matplotlib.rc("font", **font)
-matplotlib.rcParams["figure.figsize"] = (8, 6)
+matplotlib.rcParams["figure.figsize"] = (10, 8)
 
 
 class Dataset:
@@ -56,6 +57,7 @@ class Dataset:
         self.label_preprocess = label_preprocess
         self.label_map = label_map
         self.stats = {}
+        self.dataset_dir = join(DATA_DIR, self.name)
 
         if text_preprocess:
             self.text_preprocessor = Preprocessor(steps=self.text_preprocess)
@@ -208,10 +210,24 @@ class Dataset:
 
         return self
 
-    def compute_dataset_statistics(self):
-        self._get_dataset_size()
-        self._compute_label_counts()
-        self._compute_token_counts()
+    def compute_dataset_statistics(self, save: bool = True, load: bool = False):
+        stats_filepath = join(self.dataset_dir, f"{self.name}_stats.pkl")
+        if load:
+            with open(stats_filepath, "rb") as stats_file:
+                self.stats = pickle.load(stats_file)
+        else:
+            self._get_dataset_size()
+            self._compute_label_counts()
+            self._compute_token_counts()
+
+        if save:
+            with open(stats_filepath, "wb") as stats_file:
+                pickle.dump(self.stats, stats_file)
+        return self
+
+    def plot_dataset_statistics(self, save: bool = True):
+        self._plot_label_counts(save)
+        self._plot_token_counts_distribution(save)
         return self
 
     def _get_dataset_size(self):
@@ -230,7 +246,7 @@ class Dataset:
                 counter = OrderedDict(sorted(counter.items()))
                 self.stats[f"label_counts_{split}"] = counter
 
-    def _plot_label_counts(self) -> None:
+    def _plot_label_counts(self, save: bool) -> None:
         fig = plt.figure()
         ax = fig.add_axes([0, 0, 1, 1])
 
@@ -241,37 +257,85 @@ class Dataset:
         labels, values = zip(*self.stats["label_counts_test"].items())
         ax.barh(y_pos + 0.25, values, color="tab:blue", height=0.25, label="test")
 
-        ax.set_xlabel("Frequency")
-        ax.set_ylabel("Label")
-        # ax.set_title(f"Label distribution of {self.name}")
+        ax.set_xlabel("Label count")
+        ax.set_ylabel("Label name")
         ax.set_yticks(y_pos + 0.125, labels=labels)
         ax.legend()
 
-        save_dir = os.path.join(PLOTS_DIR, "label_counts")
-        if not os.path.exists(save_dir):
-            os.mkdir(save_dir)
-
-        fig.savefig(
-            os.path.join(save_dir, f"{self.name}_labels.png"),
-            bbox_inches="tight",
-        )
+        if save:
+            self.__save_plot(fig, "label_dist")
+        else:
+            return fig
 
     def _compute_token_counts(self):
         counter = Counter()
         for split in ["train", "test"]:
             token_counts = []
+            counter_split = Counter()
             if split in self.dataset:
                 for text in self.dataset[split]["text"]:
                     tokenized = word_tokenize(text)
                     token_counts.append(len(tokenized))
                     counter.update(tokenized)
+                    counter_split.update(tokenized)
 
                 self.stats[f"token_counts_{split}"] = token_counts
+                self.stats[f"unique_token_counts_{split}"] = len(counter_split)
+                self.stats[f"mean_token_counts_{split}"] = np.mean(token_counts)
+                self.stats[f"std_token_counts_{split}"] = np.std(token_counts)
 
         self.stats["total_tokens"] = sum(
-            [sum(self.stats[key]) for key in self.stats.keys() if "token_counts" in key]
+            [
+                sum(self.stats[key])
+                for key in self.stats.keys()
+                if "token_counts_train" == key or "token_counts_test" == key
+            ]
         )
         self.stats["total_unique_tokens"] = len(counter)
 
-    def _plot_token_counts_distribution(self):
-        pass
+    def _plot_token_counts_distribution(self, save: bool):
+        train = self.stats["token_counts_train"]
+        test = self.stats["token_counts_test"]
+        colors = ["tab:orange", "tab:blue"]
+        fig, ax1 = plt.subplots()
+        ax2 = ax1.twinx()
+        ax1.hist([train, test], color=colors)
+        n, bins, patches = ax1.hist([train, test], bins=50)
+        ax1.cla()
+
+        width = (bins[1] - bins[0]) * 0.4
+        bins_shifted = bins + width
+        ax1.bar(bins[:-1], n[0], width, align="edge", color=colors[0], label="train")
+        ax2.bar(
+            bins_shifted[:-1], n[1], width, align="edge", color=colors[1], label="test"
+        )
+
+        ax1.set_ylabel("Number of samples", color=colors[0])
+        ax2.set_ylabel("Number of samples", color=colors[1])
+        ax1.tick_params("y", colors=colors[0])
+        ax2.tick_params("y", colors=colors[1])
+        ax1.set_xlabel("Word count")
+        ax1.legend(loc=2)
+        ax2.legend(loc=1)
+
+        plt.tight_layout()
+        plt.show()
+
+        if save:
+            self.__save_plot(fig, "token_dist")
+        else:
+            return fig
+
+    def __save_plot(
+        self,
+        fig: matplotlib.figure.Figure,
+        suffix: str,
+    ):
+        filepath = os.path.join(PLOTS_DIR, f"{self.name}_{suffix}.png")
+        if not os.path.exists(PLOTS_DIR):
+            os.mkdir(PLOTS_DIR)
+
+        fig.savefig(
+            filepath,
+            bbox_inches="tight",
+        )
