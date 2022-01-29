@@ -26,13 +26,20 @@ NSP_MODELS = [
     "dbmdz/bert-base-turkish-128k-uncased",
 ]
 
+MLM_MODELS = [
+    "dbmdz/bert-base-turkish-cased",
+    "dbmdz/bert-base-turkish-uncased",
+    "dbmdz/bert-base-turkish-128k-cased",
+    "dbmdz/bert-base-turkish-128k-uncased",
+]
+
 
 TEMPLATES = {
     "emotion_or_sentiment": [
         "Bu metnin içerdiği duygu {}",
         "Bu metnin içerdiği duygu çoğunlukla {}",
         "Bu metin {} duygular içeriyor",
-        "Bu metnin çoğunlukla {} duygular içeriyor",
+        "Bu metin çoğunlukla {} duygular içeriyor",
         "{} duygular hissediyorum",
         "Çoğunlukla {} duygular hissediyorum",
     ],
@@ -58,19 +65,6 @@ TEMPLATES = {
 
 DATASETS = [
     {
-        "name": "17bintweet",
-        "context": "emotion_or_sentiment",
-        "from_": "local",
-        "label_preprocess": ["deasciify"],
-    },
-    {
-        "name": "tc32",
-        "context": "review",
-        "from_": "local",
-        "label_col": "category",
-        "label_preprocess": ["deasciify", "remove_punct"],
-    },
-    {
         "name": "ttc3600",
         "context": "news",
         "from_": "local",
@@ -85,7 +79,14 @@ DATASETS = [
         "label_preprocess": ["deasciify"],
     },
     {
-        "name": "ruh_hali",
+        "name": "tc32",
+        "context": "review",
+        "from_": "local",
+        "label_col": "category",
+        "label_preprocess": ["deasciify", "remove_punct"],
+    },
+    {
+        "name": "17bintweet",
         "context": "emotion_or_sentiment",
         "from_": "local",
         "label_preprocess": ["deasciify"],
@@ -112,10 +113,16 @@ DATASETS = [
         },
     },
     {
-        "name": "turted",
+        "name": "ruh_hali",
         "context": "emotion_or_sentiment",
         "from_": "local",
+        "label_preprocess": ["deasciify"],
     },
+    # {
+    #     "name": "turted",
+    #     "context": "emotion_or_sentiment",
+    #     "from_": "local",
+    # },
     # {
     #     "name": "offenseval2020_tr",
     #     "context": "offensive_lang",
