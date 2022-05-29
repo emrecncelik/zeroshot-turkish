@@ -189,4 +189,5 @@ wrapt==1.13.3
 xxhash==2.0.2
 yarl==1.7.2
 yaspin==2.1.0
+-e git+https://github.com/emrecncelik/zeroshot-turkish.git@b78904f9a93879ec555df6bebc9555820f4a3ec2#egg=zeroshot_classification
 zipp==3.8.0
