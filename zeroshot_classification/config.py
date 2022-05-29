@@ -1,65 +1,67 @@
 import os
+import torch
 
+device = "cuda:0" if torch.cuda.is_available() else "cpu"
 ROOT_DIR = os.getenv("ZEROSHOT_ROOT_DIR", "/home/emrecan/tez/zeroshot-turkish")
 DATA_DIR = os.path.join(ROOT_DIR, "datasets")
 PLOTS_DIR = os.path.join(ROOT_DIR, "plots")
 
-NLI_MODELS = [
-    "emrecan/distilbert-base-turkish-cased-allnli_tr",
-    "emrecan/distilbert-base-turkish-cased-multinli_tr",
-    "emrecan/distilbert-base-turkish-cased-snli_tr",
-    "emrecan/bert-base-turkish-cased-allnli_tr",
-    "emrecan/bert-base-turkish-cased-multinli_tr",
-    "emrecan/bert-base-turkish-cased-snli_tr",
-    "emrecan/convbert-base-turkish-mc4-cased-allnli_tr",
-    "emrecan/convbert-base-turkish-mc4-cased-multinli_tr",
-    "emrecan/convbert-base-turkish-mc4-cased-snli_tr",
-    "emrecan/bert-base-multilingual-cased-allnli_tr",
-    "emrecan/bert-base-multilingual-cased-multinli_tr",
-    "emrecan/bert-base-multilingual-cased-snli_tr",
-]
-
-NSP_MODELS = [
-    "dbmdz/bert-base-turkish-cased",
-    "dbmdz/bert-base-turkish-uncased",
-    "dbmdz/bert-base-turkish-128k-cased",
-    "dbmdz/bert-base-turkish-128k-uncased",
-]
-
-MLM_MODELS = [
-    "dbmdz/bert-base-turkish-cased",
-    "dbmdz/bert-base-turkish-uncased",
-    "dbmdz/bert-base-turkish-128k-cased",
-    "dbmdz/bert-base-turkish-128k-uncased",
-]
+MODELS = {
+    "nli": [
+        "emrecan/distilbert-base-turkish-cased-allnli_tr",
+        "emrecan/distilbert-base-turkish-cased-multinli_tr",
+        # "emrecan/distilbert-base-turkish-cased-snli_tr",
+        # "emrecan/bert-base-turkish-cased-allnli_tr",
+        # "emrecan/bert-base-turkish-cased-multinli_tr",
+        # "emrecan/bert-base-turkish-cased-snli_tr",
+        # "emrecan/convbert-base-turkish-mc4-cased-allnli_tr",
+        # "emrecan/convbert-base-turkish-mc4-cased-multinli_tr",
+        # "emrecan/convbert-base-turkish-mc4-cased-snli_tr",
+        # "emrecan/bert-base-multilingual-cased-allnli_tr",
+        # "emrecan/bert-base-multilingual-cased-multinli_tr",
+        # "emrecan/bert-base-multilingual-cased-snli_tr",
+    ],
+    "nsp": [
+        "dbmdz/bert-base-turkish-cased",
+        "dbmdz/bert-base-turkish-uncased",
+        # "dbmdz/bert-base-turkish-128k-cased",
+        # "dbmdz/bert-base-turkish-128k-uncased",
+    ],
+    "mlm": [
+        "dbmdz/bert-base-turkish-cased",
+        "dbmdz/bert-base-turkish-uncased",
+        # "dbmdz/bert-base-turkish-128k-cased",
+        # "dbmdz/bert-base-turkish-128k-uncased",
+    ],
+}
 
 
 TEMPLATES = {
     "emotion_or_sentiment": [
         "Bu metnin içerdiği duygu {}",
         "Bu metnin içerdiği duygu çoğunlukla {}",
-        "Bu metin {} duygular içeriyor",
-        "Bu metin çoğunlukla {} duygular içeriyor",
-        "{} duygular hissediyorum",
-        "Çoğunlukla {} duygular hissediyorum",
+        # "Bu metin {} duygular içeriyor",
+        # "Bu metin çoğunlukla {} duygular içeriyor",
+        # "{} duygular hissediyorum",
+        # "Çoğunlukla {} duygular hissediyorum",
     ],
     "news": [
         "Bu haberin konusu {}",
         "Bu haberin konusu çoğunlukla {}",
-        "Bu haber {} ile ilgilidir",
-        "Bu haber çoğunlukla {} ile ilgilidir",
-        "Bu haberin içeriği {} ile ilgilidir",
-        "Bu haberin içeriği çoğunlukla {} ile ilgilidir",
+        # "Bu haber {} ile ilgilidir",
+        # "Bu haber çoğunlukla {} ile ilgilidir",
+        # "Bu haberin içeriği {} ile ilgilidir",
+        # "Bu haberin içeriği çoğunlukla {} ile ilgilidir",
     ],
     "review": [
         "Bu şikayetin konusu {}",
         "Bu şikayetin konusu çoğunlukla {}",
-        "{} ile ilgili şikayetim var",
-        "Çoğunlukla {} ile ilgili şikayetim var",
-        "{} hizmetinizden memnun değilim",
-        "Çoğunlukla {} hizmetinizden memnun değilim",
-        "Bu şikayetin içeriği {} ile ilgili",
-        "Bu şikayetin içeriği çoğunlukla {} ile ilgili",
+        # "{} ile ilgili şikayetim var",
+        # "Çoğunlukla {} ile ilgili şikayetim var",
+        # "{} hizmetinizden memnun değilim",
+        # "Çoğunlukla {} hizmetinizden memnun değilim",
+        # "Bu şikayetin içeriği {} ile ilgili",
+        # "Bu şikayetin içeriği çoğunlukla {} ile ilgili",
     ],
 }
 
@@ -70,27 +72,31 @@ DATASETS = [
         "from_": "local",
         "label_col": "label",
         "label_preprocess": ["deasciify"],
+        "test_size": 0.01,
     },
-    {
-        "name": "ttc4900",
-        "context": "news",
-        "from_": "local",
-        "label_col": "category",
-        "label_preprocess": ["deasciify"],
-    },
-    {
-        "name": "tc32",
-        "context": "review",
-        "from_": "local",
-        "label_col": "category",
-        "label_preprocess": ["deasciify", "remove_punct"],
-    },
-    {
-        "name": "17bintweet",
-        "context": "emotion_or_sentiment",
-        "from_": "local",
-        "label_preprocess": ["deasciify"],
-    },
+    # {
+    #     "name": "ttc4900",
+    #     "context": "news",
+    #     "from_": "local",
+    #     "label_col": "category",
+    #     "label_preprocess": ["deasciify"],
+    #     "test_size": 0.2,
+    # },
+    # {
+    #     "name": "tc32",
+    #     "context": "review",
+    #     "from_": "local",
+    #     "label_col": "category",
+    #     "label_preprocess": ["deasciify", "remove_punct"],
+    #     "test_size": 0.2,
+    # },
+    # {
+    #     "name": "17bintweet",
+    #     "context": "emotion_or_sentiment",
+    #     "from_": "local",
+    #     "label_preprocess": ["deasciify"],
+    #     "test_size": 0.2,
+    # },
     {
         "name": "turkish_product_reviews",
         "context": "emotion_or_sentiment",
@@ -98,25 +104,29 @@ DATASETS = [
         "label_col": "sentiment",
         "text_col": "sentence",
         "label_map": {"1": "olumlu", "0": "olumsuz"},
+        "test_size": 0.01,
     },
-    {
-        "name": "tremo",
-        "context": "emotion_or_sentiment",
-        "from_": "local",
-        "label_map": {
-            "Happy": "mutluluk",
-            "Fear": "korku",
-            "Sadness": "üzüntü",
-            "Surprise": "şaşırma",
-            "Disgust": "tiksinme",
-            "Anger": "öfke",
-        },
-    },
+    # {
+    #     "name": "tremo",
+    #     "context": "emotion_or_sentiment",
+    #     "from_": "local",
+    #     "label_map": {
+    #         "Happy": "mutluluk",
+    #         "Fear": "korku",
+    #         "Sadness": "üzüntü",
+    #         "Surprise": "şaşırma",
+    #         "Disgust": "tiksinme",
+    #         "Anger": "öfke",
+    #         "Ambigious": "belirsiz",
+    #     },
+    #     "test_size": 0.01,
+    # },
     {
         "name": "ruh_hali",
         "context": "emotion_or_sentiment",
         "from_": "local",
         "label_preprocess": ["deasciify"],
+        "test_size": 0.1,
     },
     # {
     #     "name": "turted",

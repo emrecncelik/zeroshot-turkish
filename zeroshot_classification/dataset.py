@@ -3,7 +3,7 @@ from __future__ import annotations
 # Python stuff
 import os
 import pickle
-import logging
+from loguru import logger
 import multiprocessing
 from os.path import join
 from typing import List, Dict, Union
@@ -24,7 +24,6 @@ from zeroshot_classification.preprocess import Preprocessor
 
 from nltk.tokenize import word_tokenize
 
-logger = logging.getLogger(__name__)
 
 # TODO Allow user to give labels for the dataset
 # also set labels in the HFDataset  when loading from local csv.
@@ -70,6 +69,18 @@ class Dataset:
     def __str__(self) -> str:
         return f"{self.name}_{self.context}_{self.from_}"
 
+    @property
+    def labels(self):
+        lookup = set()
+        labels = []
+        if "test" in self.dataset:
+            labels += self.dataset["test"][self.label_col]
+        if "train" in self.dataset:
+            labels += self.dataset["train"][self.label_col]
+
+        labels = [l for l in labels if l not in lookup and lookup.add(l) is None]
+        return labels
+
     def load_dataset(self):
         """Loads the dataset from local or from Hugging Face Hub.
 
@@ -77,7 +88,6 @@ class Dataset:
             Dataset: Returns self to allow function aggregation
         """
 
-        logger.info(f"======== Loading dataset {self.name} from {self.from_} ========")
         if self.from_ == "hf":
             self.dataset = load_dataset(self.name)
             self.dataset["train"] = self.dataset["train"].rename_columns(
@@ -88,8 +98,8 @@ class Dataset:
                     {self.text_col: "text", self.label_col: "label"}
                 )
             else:
-                logger.info(
-                    f"\tDataset does not contain test split, call train_test_split"
+                logger.warning(
+                    f"Dataset does not contain test split, call train_test_split"
                 )
         elif self.from_ == "local":
             self.dataset = HFDatasetDict()
@@ -103,11 +113,11 @@ class Dataset:
 
                     self.dataset[split] = dataset
                 except FileNotFoundError:
-                    logger.info(
-                        f"\tDataset does not contain formatted data for the {split} split."
+                    logger.warning(
+                        f"Dataset does not contain formatted data for the {split} split."
                     )
-                    logger.info(f"\tFile path: {file_path}")
-                    logger.info(f"\tYou may need to call train_test_split function.")
+                    logger.warning(f"File path: {file_path}")
+                    logger.warning(f"You may need to call train_test_split function.")
         self.text_col = "text"
         self.label_col = "label"
         return self
@@ -153,16 +163,16 @@ class Dataset:
             preprocessor = self.text_preprocessor
             column = self.text_col
 
-        logger.info(f"======== Preprocessing {column} ========")
-        logger.info(f"\t{steps}")
+        logger.debug(f"Preprocessing {column} column")
+        logger.debug(f"\t{steps}")
 
         def _preprocess_col(example):
             example[column] = preprocessor.preprocess(example[column])
             return example
 
-        logger.info(f"\tBefore:")
+        logger.debug(f"\tBefore:")
         for example in self.dataset["train"][column][:3]:
-            logger.info(f"\t\t{str(example)[:20]}")
+            logger.debug(f"\t\t{str(example)[:70]}")
 
         for split in self.dataset.keys():
             self.dataset[split] = self.dataset[split].map(
@@ -170,9 +180,9 @@ class Dataset:
                 num_proc=multiprocessing.cpu_count(),
             )
 
-        logger.info(f"\tAfter:")
+        logger.debug(f"\tAfter:")
         for example in self.dataset["train"][column][:3]:
-            logger.info(f"\t\t{str(example)[:20]}")
+            logger.debug(f"\t{str(example)[:70]}")
 
         return self
 
@@ -184,10 +194,10 @@ class Dataset:
             Dataset: Returns self to allow function aggregation
         """
         if self.label_map:
-            logger.info(f"{self}")
-            logger.info(f"\tBefore:")
+            logger.debug(f"{self}")
+            logger.debug(f"\tBefore:")
             for example in self.dataset["train"][self.label_col][:3]:
-                logger.info(f"\t\t{str(example)[:20]}")
+                logger.debug(f"\t\t{str(example)[:20]}")
 
             if isinstance(self.label_map, bool) and self.label_map:
                 map_func = self.dataset["train"].features[self.label_col].int2str
@@ -204,9 +214,9 @@ class Dataset:
                     _map_label, num_proc=multiprocessing.cpu_count()
                 )
 
-            logger.info(f"\tAfter:")
+            logger.debug(f"\tAfter:")
             for example in self.dataset["train"][self.label_col][:3]:
-                logger.info(f"\t\t{str(example)[:20]}")
+                logger.debug(f"\t\t{str(example)[:20]}")
 
         return self
 

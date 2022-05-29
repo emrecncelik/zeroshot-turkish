@@ -3,7 +3,7 @@ import string
 from toolz import functoolz
 from typing import List
 from textacy import preprocessing
-from experiments.utils import mild_cleaning
+from zeroshot_classification.utils import mild_cleaning
 from turkish.deasciifier import Deasciifier
 
 

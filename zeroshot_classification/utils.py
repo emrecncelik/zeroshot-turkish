@@ -1,5 +1,7 @@
+import pickle
 import os
 import logging
+from typing import Any
 import pandas as pd
 
 DATA_PATH = os.getenv("DATA_PATH", "/home/emrecan/tez/zeroshot-turkish/datasets")
@@ -55,6 +57,16 @@ def format_tremo(filepath: str):
     filename[-1] = "formatted_train.csv"
     filename = "/".join(filename)
     data.to_csv(filename, index=False)
+
+
+def serialize(obj: Any, filename: str):
+    with open(filename, "wb") as f:
+        pickle.dump(obj, f)
+
+
+def deserialize(filename: str):
+    with open(filename, "rb") as f:
+        return pickle.load(f)
 
 
 if __name__ == "__main__":
