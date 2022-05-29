@@ -169,12 +169,12 @@ tinycss2==1.1.1
 tokenizers==0.10.3
 tomli==1.2.2
 toolz==0.11.2
-torch==1.10.0
+torch==1.11.0+cu113
 tornado==6.1
 tqdm==4.62.3
 traitlets==5.1.1
 transformers==4.12.3
-Turkish-Deasciifier==0.1
+Turkish-Deasciifier @ git+https://github.com/emres/turkish-deasciifier.git@665154c734b09485c3d11ce0038cd121dd109594
 typer==0.4.0
 typing-extensions==3.10.0.2
 tzdata==2021.5
@@ -189,5 +189,4 @@ wrapt==1.13.3
 xxhash==2.0.2
 yarl==1.7.2
 yaspin==2.1.0
--e git+https://github.com/emrecncelik/zeroshot-turkish.git@b78904f9a93879ec555df6bebc9555820f4a3ec2#egg=zeroshot_classification
 zipp==3.8.0
