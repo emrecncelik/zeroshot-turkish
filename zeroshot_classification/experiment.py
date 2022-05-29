@@ -2,12 +2,11 @@ from collections import defaultdict
 from typing import Dict, List, Optional
 
 import torch
+import wandb
 from loguru import logger
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
-from transformers import pipeline
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, ConfusionMatrixDisplay
 
 from zeroshot_classification.classifiers import (
-    MLMZeroshotClassifier,
     NSPZeroshotClassifier,
     NLIZeroshotClassifier,
 )
@@ -56,6 +55,7 @@ class Experiment:
 
     def run(
         self,
+        cache_results: Optional[str] = None, 
         **prediction_kwargs,
     ):
         results = defaultdict(
@@ -87,6 +87,26 @@ class Experiment:
                     results[model_name][dataset_kwargs["name"]][
                         template
                     ] = self._evaluate_on_current_dataset()
+
+                    cm_plot = results[model_name][dataset_kwargs["name"]][template].pop("confusion_matrix_plot")
+
+                    with wandb.init(project="zeroshot-turkish-predictions", entity="emrecncelik") as run:
+                        run.log({
+                            "model": model_name, 
+                            "model_type": self.model_type,
+                            "dataset": dataset_kwargs["name"],
+                            "template": template,
+                            "classification_report": results[model_name][dataset_kwargs["name"]][template]["classification_report"],
+                            "confusion_matrix": cm_plot.figure_
+                            })
+                        run.finish()
+
+                    if cache_results:
+                        logger.info(f"Caching results at {cache_results}")
+                        results.default_factory = None
+                        serialize(results, cache_results)
+                        results.default_factory = lambda: defaultdict(dict)
+
         results.default_factory = None
         return results
 
@@ -120,6 +140,7 @@ class Experiment:
             output_dict=True,
         )
         cm = confusion_matrix(true, pred)
+        cm_plot = ConfusionMatrixDisplay.from_predictions(true, pred)
         acc = accuracy_score(true, pred)
 
         logger.info(
@@ -136,30 +157,23 @@ class Experiment:
         return {
             "classification_report": clf_report,
             "confusion_matrix": cm,
+            "confusion_matrix_plot": cm_plot,
             "accuracy": acc,
         }
 
 
 if __name__ == "__main__":
     import sys
-
     logger.remove()
     logger.add(sys.stderr, level="INFO")
 
-    # nli_experiment = Experiment("nli", device=0)
-    # results = nli_experiment.run(batched=True, batch_size=100, num_workers=4)
-
-    # serialize(results, "results_nli.bin")
+    nli_experiment = Experiment("nli", device=0)
+    results = nli_experiment.run(cache_results="nli_results_cache.bin",batched=True, batch_size=256, num_workers=8)
+    del nli_experiment
+    serialize(results, "nli_results_final.bin")
 
     nsp_experiment = Experiment("nsp")
-    results = nsp_experiment.run(batched=True, batch_size=10, num_workers=4)
+    results = nsp_experiment.run(cache_results="nsp_results_cache.bin", batched=True, batch_size=256, num_workers=8)
+    del nsp_experiment
+    serialize(results, "nsp_results_final.bin")
 
-    serialize(results, "results_nsp.bin")
-
-# reform = {
-#     (outerKey, innerKey): values
-#     for outerKey, innerDict in results.items()
-#     for innerKey, values in innerDict.items()
-# }
-# pd.DataFrame.from_dict(reform, orient="index").transpose()
-# data.applymap(lambda x: x["classification_report"]["weighted avg"]["f1-score"] if isinstance(x, dict) else x)
