@@ -2,16 +2,15 @@ import random
 from abc import ABC, abstractmethod
 from typing import List
 
-import numpy as np
 import torch
+import numpy as np
 from loguru import logger
 from transformers import (
     BertForNextSentencePrediction,
-    BertTokenizer,
     BertTokenizerFast,
     pipeline,
 )
-from datasets import Dataset as HFDataset
+from scipy.special import softmax
 from zeroshot_classification.dataset import Dataset
 from zeroshot_classification.config import device
 
@@ -238,17 +237,52 @@ class NSPZeroshotClassifier(ZeroshotClassifierBase):
         prompt_template: str,
         **kwargs,
     ):
-        pass
-        # outputs = self.model(
-        #     texts,
-        #     candidate_labels=candidate_labels,
-        #     hypothesis_template=prompt_template,
-        #     **kwargs,
-        # )
-        # for out in outputs:
-        #     del out["sequence"]
+        self._prepare_prompts(candidate_labels, prompt_template)
+        prompts = list(self.label2prompt.values())
+        predictions = []
 
-        # return outputs
+        for text in texts:
+            logits = []
+            for prompt in prompts:
+                if self.reverse_prompts:
+                    encoding = self.tokenizer(
+                        prompt,
+                        text,
+                        return_tensors="pt",
+                        truncation=True,
+                        padding=True,
+                    )
+                else:
+                    encoding = self.tokenizer(
+                        text,
+                        prompt,
+                        return_tensors="pt",
+                        truncation=True,
+                        padding=True,
+                    )
+                outputs = self.model(**encoding.to(device))
+                logits.append(
+                    outputs.logits.cpu().detach().numpy()[0][0]
+                )
+
+            predicted_labels = list(self.label2prompt.keys())
+            predicted_probs = softmax(logits).tolist()
+            print("before")
+            print(predicted_labels)
+            print(predicted_probs)
+            print("after")
+            predicted_probs, predicted_labels = zip(*sorted(zip(predicted_probs, predicted_labels), reverse=True))
+            print(predicted_labels)
+            print(predicted_probs)
+            predictions.append(
+                {
+                "labels": predicted_labels,
+                "probabilities": predicted_probs
+                }
+            )
+
+        return predictions
+
 
 
 class MLMZeroshotClassifier(ZeroshotClassifierBase):
