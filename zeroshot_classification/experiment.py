@@ -4,11 +4,17 @@ from typing import Dict, List, Optional
 import torch
 import wandb
 from loguru import logger
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, ConfusionMatrixDisplay
+from sklearn.metrics import (
+    accuracy_score,
+    classification_report,
+    confusion_matrix,
+    ConfusionMatrixDisplay,
+)
 
 from zeroshot_classification.classifiers import (
     NSPZeroshotClassifier,
     NLIZeroshotClassifier,
+    MLMZeroshotClassifier,
 )
 from zeroshot_classification.config import DATASETS, TEMPLATES, MODELS
 from zeroshot_classification.dataset import Dataset
@@ -19,7 +25,7 @@ class Experiment:
     name_to_cls = {
         "nli": NLIZeroshotClassifier,
         "nsp": NSPZeroshotClassifier,
-        # "nsp": MLMZeroshotClassifier,
+        "mlm": MLMZeroshotClassifier,
     }
 
     def __init__(
@@ -55,7 +61,7 @@ class Experiment:
 
     def run(
         self,
-        cache_results: Optional[str] = None, 
+        cache_results: Optional[str] = None,
         **prediction_kwargs,
     ):
         results = defaultdict(
@@ -88,17 +94,25 @@ class Experiment:
                         template
                     ] = self._evaluate_on_current_dataset()
 
-                    cm_plot = results[model_name][dataset_kwargs["name"]][template].pop("confusion_matrix_plot")
+                    cm_plot = results[model_name][dataset_kwargs["name"]][template].pop(
+                        "confusion_matrix_plot"
+                    )
 
-                    with wandb.init(project="zeroshot-turkish-predictions", entity="emrecncelik") as run:
-                        run.log({
-                            "model": model_name, 
-                            "model_type": self.model_type,
-                            "dataset": dataset_kwargs["name"],
-                            "template": template,
-                            "classification_report": results[model_name][dataset_kwargs["name"]][template]["classification_report"],
-                            "confusion_matrix": cm_plot.figure_
-                            })
+                    with wandb.init(
+                        project="zeroshot-turkish-predictions", entity="emrecncelik"
+                    ) as run:
+                        run.log(
+                            {
+                                "model": model_name,
+                                "model_type": self.model_type,
+                                "dataset": dataset_kwargs["name"],
+                                "template": template,
+                                "classification_report": results[model_name][
+                                    dataset_kwargs["name"]
+                                ][template]["classification_report"],
+                                "confusion_matrix": cm_plot.figure_,
+                            }
+                        )
                         run.finish()
 
                     if cache_results:
@@ -111,6 +125,8 @@ class Experiment:
         return results
 
     def _empty_memory(self):
+        if self.model_type == "mlm":
+            del self.current_classifier.ft_model_or_path
         self.current_classifier = None
         torch.cuda.empty_cache()
 
@@ -164,16 +180,36 @@ class Experiment:
 
 if __name__ == "__main__":
     import sys
+
     logger.remove()
     logger.add(sys.stderr, level="INFO")
 
-    nli_experiment = Experiment("nli", device=0)
-    results = nli_experiment.run(cache_results="nli_results_cache.bin",batched=True, batch_size=256, num_workers=8)
-    del nli_experiment
-    serialize(results, "nli_results_final.bin")
+    # nli_experiment = Experiment("nli", device=0)
+    # results = nli_experiment.run(
+    #     cache_results="nli_results_cache.bin",
+    #     batched=True,
+    #     batch_size=256,
+    #     num_workers=8,
+    # )
+    # del nli_experiment
+    # serialize(results, "nli_results_final.bin")
 
-    nsp_experiment = Experiment("nsp")
-    results = nsp_experiment.run(cache_results="nsp_results_cache.bin", batched=True, batch_size=256, num_workers=8)
-    del nsp_experiment
-    serialize(results, "nsp_results_final.bin")
+    # nsp_experiment = Experiment("nsp")
+    # results = nsp_experiment.run(
+    #     cache_results="nsp_results_cache.bin",
+    #     batched=True,
+    #     batch_size=256,
+    #     num_workers=8,
+    # )
+    # del nsp_experiment
+    # serialize(results, "nsp_results_final.bin")
 
+    mlm_experiment = Experiment("mlm")
+    results = mlm_experiment.run(
+        cache_results="mlm_results_cache.bin",
+        batched=True,
+        batch_size=128,
+        num_workers=0,
+    )
+    del mlm_experiment
+    serialize(results, "mlm_results_final.bin")

@@ -2,18 +2,37 @@ import random
 from abc import ABC, abstractmethod
 from typing import List
 
-import torch
+import fasttext
 import numpy as np
+import torch
+from tqdm import tqdm
 from loguru import logger
+from scipy.spatial.distance import cosine
+from scipy.special import softmax
+from torch.utils.data import Dataset as PTDataset
 from transformers import (
+    AutoModelForMaskedLM,
+    AutoTokenizer,
     BertForNextSentencePrediction,
     BertTokenizerFast,
     pipeline,
 )
 from transformers.pipelines import FillMaskPipeline, base
-from scipy.special import softmax
-from zeroshot_classification.dataset import Dataset
+
 from zeroshot_classification.config import device
+from zeroshot_classification.dataset import Dataset
+
+
+class ZeroshotMLMDataset(PTDataset):
+    def __init__(self, texts: List[str], template: str, mask_token: str):
+        self.texts = texts
+        self.template = template.replace("{}", mask_token)
+
+    def __len__(self):
+        return len(self.texts)
+
+    def __getitem__(self, idx):
+        return self.texts[idx] + " " + self.template
 
 
 class FillMaskPipelineWithPreprocessParams(FillMaskPipeline):
@@ -315,6 +334,71 @@ class NSPZeroshotClassifier(ZeroshotClassifierBase):
         return predictions
 
 
-
 class MLMZeroshotClassifier(ZeroshotClassifierBase):
-    pass
+    def __init__(
+        self,
+        model_name: str,
+        ft_model_or_path: str = None,
+        random_state: int = None,
+        **kwargs,
+    ) -> None:
+        super().__init__(model_name, random_state, **kwargs)
+        self.ft_model_path = (
+            ft_model_or_path if isinstance(ft_model_or_path, str) else None
+        )
+        self.ft_model = (
+            ft_model_or_path if not isinstance(ft_model_or_path, str) else None
+        )
+
+    def _init_model(self, model_name: str):
+        model = AutoModelForMaskedLM.from_pretrained(model_name)
+        tokenizer = AutoTokenizer.from_pretrained(model_name, truncation_side="left")
+
+        pipeline = FillMaskPipelineWithPreprocessParams(
+            model=model, tokenizer=tokenizer
+        )
+
+        self.model = pipeline
+        if self.ft_model is None:
+            self.ft_model = fasttext.load_model(self.ft_model_path)
+
+    def predict_on_dataset(
+        self,
+        dataset: Dataset,
+        candidate_labels: List[str],
+        prompt_template: str,
+        batched: bool = True,
+        batch_size: int = 100,
+        **kwargs,
+    ):
+        if not batched:
+            batch_size = 1
+
+        candidate_label_vectors = [self.ft_model(label) for label in candidate_labels]
+        pipeline = self.model(
+            ZeroshotMLMDataset(dataset.dataset["test"]["text"], prompt_template),
+            truncation=True,
+            batch_size=batch_size,
+            **kwargs,
+        )
+
+        predictions = []
+        for model_output in tqdm(pipeline, total=len(dataset.dataset["test"]["text"])):
+            avg_vector = self.ft_model.get_sentence_vector(
+                " ".join([o["token_str"] for o in model_output])
+            )
+            similarities = [
+                1 - cosine(avg_vector, vec) for vec in candidate_label_vectors
+            ]
+            pred = sorted(
+                zip(candidate_labels, similarities),
+                key=lambda tup: tup[1],
+                reverse=True,
+            )
+            predictions.append(pred[0][0])
+
+        dataset.dataset["test"] = dataset.dataset["test"].add_column(
+            "predicted_label", predictions
+        )
+
+        return dataset

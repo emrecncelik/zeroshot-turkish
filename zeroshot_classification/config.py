@@ -27,12 +27,12 @@ MODELS = {
         "dbmdz/bert-base-turkish-128k-cased",
         # "dbmdz/bert-base-turkish-128k-uncased",
     ],
-    # "mlm": [
-    #     "dbmdz/bert-base-turkish-cased",
-    #     "dbmdz/bert-base-turkish-uncased",
-    #     # "dbmdz/bert-base-turkish-128k-cased",
-    #     # "dbmdz/bert-base-turkish-128k-uncased",
-    # ],
+    "mlm": [
+        "dbmdz/bert-base-turkish-cased",
+        # "dbmdz/bert-base-turkish-uncased",
+        "dbmdz/bert-base-turkish-128k-cased",
+        # "dbmdz/bert-base-turkish-128k-uncased",
+    ],
 }
 
 
@@ -71,7 +71,14 @@ DATASETS = [
         "context": "news",
         "from_": "local",
         "label_col": "label",
-        "label_preprocess": ["deasciify"],
+        "label_map": {
+            "ekonomi": "ekonomi",
+            "kultursanat": "kültürsanat",
+            "saglik": "sağlık",
+            "siyaset": "siyaset",
+            "spor": "spor",
+            "teknoloji": "teknoloji",
+        },
         "test_size": 0.3,
     },
     {
