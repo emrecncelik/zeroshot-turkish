@@ -75,30 +75,19 @@ class ZeroshotClassifierBase(ABC):
 
     @abstractmethod
     def _init_model(self, model_name: str):
-        """_summary_
-
-        Args:
-            model_name (str): _description_
-
-        Returns:
-            _type_: _description_
-        """
+        pass
 
     @abstractmethod
     def predict_on_dataset(
         self,
-        Dataset: List[str],
+        dataset: Dataset,
         candidate_labels: List[str],
         prompt_template: str,
+        batched: bool = True,
+        batch_size: int = 100,
         **kwargs,
     ):
-        """_summary_
-
-        Args:
-            Dataset (List[str]): _description_
-            candidate_labels (List[str]): _description_
-            prompt_template (str): _description_
-        """
+        pass
 
     @abstractmethod
     def predict_on_texts(
@@ -108,13 +97,7 @@ class ZeroshotClassifierBase(ABC):
         prompt_template: str,
         **kwargs,
     ):
-        """_summary_
-
-        Args:
-            texts (List[str]): _description_
-            candidate_labels (List[str]): _description_
-            prompt_template (str): _description_
-        """
+        pass
 
     def _set_random_state(self, random_state: int):
         if random_state:
@@ -122,17 +105,6 @@ class ZeroshotClassifierBase(ABC):
             torch.cuda.manual_seed(random_state)
         np.random.seed(random_state)
         random.seed(random_state)
-
-    # def _set_prompt_template(prompt_template: Union[str, List[str]]) -> str:
-    #     if isinstance(prompt_template, list):
-    #         prompt_template = random.choice(prompt_template)
-
-    #     return prompt_template
-
-    # def _prepare_prompts(
-    #     self, candidate_labels: List[str], prompt_template: str
-    # ) -> List[str]:
-    #     return [prompt_template.format(label) for label in candidate_labels]
 
 
 class NLIZeroshotClassifier(ZeroshotClassifierBase):
