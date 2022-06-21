@@ -62,6 +62,7 @@ class Experiment:
     def run(
         self,
         cache_results: Optional[str] = None,
+        log_to_wandb: bool = True,
         **prediction_kwargs,
     ):
         results = defaultdict(
@@ -89,7 +90,6 @@ class Experiment:
                         prompt_template=template,
                         **prediction_kwargs,
                     )
-
                     results[model_name][dataset_kwargs["name"]][
                         template
                     ] = self._evaluate_on_current_dataset()
@@ -97,23 +97,23 @@ class Experiment:
                     cm_plot = results[model_name][dataset_kwargs["name"]][template].pop(
                         "confusion_matrix_plot"
                     )
-
-                    with wandb.init(
-                        project="zeroshot-turkish-predictions", entity="emrecncelik"
-                    ) as run:
-                        run.log(
-                            {
-                                "model": model_name,
-                                "model_type": self.model_type,
-                                "dataset": dataset_kwargs["name"],
-                                "template": template,
-                                "classification_report": results[model_name][
-                                    dataset_kwargs["name"]
-                                ][template]["classification_report"],
-                                "confusion_matrix": cm_plot.figure_,
-                            }
-                        )
-                        run.finish()
+                    if log_to_wandb:
+                        with wandb.init(
+                            project="zeroshot-turkish-predictions", entity="emrecncelik"
+                        ) as run:
+                            run.log(
+                                {
+                                    "model": model_name,
+                                    "model_type": self.model_type,
+                                    "dataset": dataset_kwargs["name"],
+                                    "template": template,
+                                    "classification_report": results[model_name][
+                                        dataset_kwargs["name"]
+                                    ][template]["classification_report"],
+                                    "confusion_matrix": cm_plot.figure_,
+                                }
+                            )
+                            run.finish()
 
                     if cache_results:
                         logger.info(f"Caching results at {cache_results}")
@@ -180,6 +180,7 @@ class Experiment:
 
 if __name__ == "__main__":
     import sys
+    import fasttext
 
     logger.remove()
     logger.add(sys.stderr, level="INFO")
@@ -203,12 +204,17 @@ if __name__ == "__main__":
     # )
     # del nsp_experiment
     # serialize(results, "nsp_results_final.bin")
+    ft_model = fasttext.load_model("/home/emrecan/tez/zeroshot-turkish/cc.tr.300.bin")
+    mlm_experiment = Experiment(
+        "mlm",
+        ft_model=ft_model,
+    )
 
-    mlm_experiment = Experiment("mlm")
     results = mlm_experiment.run(
         cache_results="mlm_results_cache.bin",
+        log_to_wandb=False,
         batched=True,
-        batch_size=128,
+        batch_size=8,
         num_workers=0,
     )
     del mlm_experiment
