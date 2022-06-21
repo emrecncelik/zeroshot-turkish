@@ -142,3 +142,4 @@ plots
 *.bin
 *.csv
 *.gz
+fastText
