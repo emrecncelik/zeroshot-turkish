@@ -115,6 +115,9 @@ class NLIZeroshotClassifier(ZeroshotClassifierBase):
         self._set_random_state(random_state)
         self._init_model(model_name, **kwargs)
 
+    def __init__(self, model_name: str, random_state: int = None, **kwargs) -> None:
+        super().__init__(model_name, random_state, **kwargs)
+
     def _init_model(self, model_name: str, **kwargs):
         self.model = pipeline("zero-shot-classification", model=model_name, **kwargs)
 
@@ -176,11 +179,8 @@ class NSPZeroshotClassifier(ZeroshotClassifierBase):
         reverse_prompts: bool = False,
         **kwargs,
     ) -> None:
-        self.model_name = model_name
-        self.random_state = random_state
+        super().__init__(model_name, random_state, **kwargs)
         self.reverse_prompts = reverse_prompts
-        self._set_random_state(random_state)
-        self._init_model(model_name, **kwargs)
 
     def _init_model(self, model_name: str, **kwargs):
         self.model = BertForNextSentencePrediction.from_pretrained(
