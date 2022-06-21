@@ -32,6 +32,7 @@ MODELS = {
         # "dbmdz/bert-base-turkish-uncased",
         "dbmdz/bert-base-turkish-128k-cased",
         # "dbmdz/bert-base-turkish-128k-uncased",
+        "emrecan/convbert-base-turkish-mc4-cased-allnli_tr",
     ],
 }
 
@@ -132,7 +133,12 @@ DATASETS = [
         "name": "ruh_hali",
         "context": "emotion_or_sentiment",
         "from_": "local",
-        "label_preprocess": ["deasciify"],
+        "label_map": {
+            "karisik": "karışık",
+            "neseli": "neşeli",
+            "sinirli": "sinirli",
+            "uzgun": "üzgün",
+        },
         "test_size": 0.3,
     },
     # {
