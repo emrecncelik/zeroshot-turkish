@@ -310,29 +310,32 @@ class MLMZeroshotClassifier(ZeroshotClassifierBase):
     def __init__(
         self,
         model_name: str,
-        ft_model_or_path: str = None,
+        ft_model: str = None,
+        ft_path: str = None,
         random_state: int = None,
         **kwargs,
     ) -> None:
+        self.ft_model = ft_model
+        self.ft_path = ft_path
+
+        if ft_model is None and ft_path is None:
+            raise ValueError("Provide at least one of ft_model or ft_path.")
+
         super().__init__(model_name, random_state, **kwargs)
-        self.ft_model_path = (
-            ft_model_or_path if isinstance(ft_model_or_path, str) else None
-        )
-        self.ft_model = (
-            ft_model_or_path if not isinstance(ft_model_or_path, str) else None
-        )
 
     def _init_model(self, model_name: str):
-        model = AutoModelForMaskedLM.from_pretrained(model_name)
+        model = AutoModelForMaskedLM.from_pretrained(model_name).to(0)
         tokenizer = AutoTokenizer.from_pretrained(model_name, truncation_side="left")
 
         pipeline = FillMaskPipelineWithPreprocessParams(
-            model=model, tokenizer=tokenizer
+            model=model, tokenizer=tokenizer, device=0
         )
 
+        self.mask_token = tokenizer.mask_token
         self.model = pipeline
         if self.ft_model is None:
-            self.ft_model = fasttext.load_model(self.ft_model_path)
+            logger.info("Initializing fastText model")
+            self.ft_model = fasttext.load_model(self.ft_path)
 
     def predict_on_dataset(
         self,
@@ -346,9 +349,15 @@ class MLMZeroshotClassifier(ZeroshotClassifierBase):
         if not batched:
             batch_size = 1
 
-        candidate_label_vectors = [self.ft_model(label) for label in candidate_labels]
+        candidate_label_vectors = [
+            self.ft_model.get_sentence_vector(label) for label in candidate_labels
+        ]
         pipeline = self.model(
-            ZeroshotMLMDataset(dataset.dataset["test"]["text"], prompt_template),
+            ZeroshotMLMDataset(
+                dataset.dataset["test"]["text"],
+                prompt_template,
+                mask_token=self.mask_token,
+            ),
             truncation=True,
             batch_size=batch_size,
             **kwargs,
@@ -367,10 +376,28 @@ class MLMZeroshotClassifier(ZeroshotClassifierBase):
                 key=lambda tup: tup[1],
                 reverse=True,
             )
+            logger.debug(f"Prediction: {pred[0][0]}")
             predictions.append(pred[0][0])
 
-        dataset.dataset["test"] = dataset.dataset["test"].add_column(
-            "predicted_label", predictions
-        )
+        try:
+            dataset.dataset["test"] = dataset.dataset["test"].add_column(
+                "predicted_label", predictions
+            )
+        except ValueError:
+            dataset.dataset["test"] = dataset.dataset["test"].remove_columns(
+                ["predicted_label"]
+            )
+            dataset.dataset["test"] = dataset.dataset["test"].add_column(
+                "predicted_label", predictions
+            )
 
         return dataset
+
+    def predict_on_texts(
+        self,
+        texts: List[str],
+        candidate_labels: List[str],
+        prompt_template: str,
+        **kwargs,
+    ):
+        pass
