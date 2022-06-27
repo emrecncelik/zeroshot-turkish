@@ -283,24 +283,15 @@ class NSPZeroshotClassifier(ZeroshotClassifierBase):
                         padding=True,
                     )
                 outputs = self.model(**encoding.to(device))
-                logits.append(
-                    outputs.logits.cpu().detach().numpy()[0][0]
-                )
+                logits.append(outputs.logits.cpu().detach().numpy()[0][0])
 
             predicted_labels = list(self.label2prompt.keys())
             predicted_probs = softmax(logits).tolist()
-            print("before")
-            print(predicted_labels)
-            print(predicted_probs)
-            print("after")
-            predicted_probs, predicted_labels = zip(*sorted(zip(predicted_probs, predicted_labels), reverse=True))
-            print(predicted_labels)
-            print(predicted_probs)
+            predicted_probs, predicted_labels = zip(
+                *sorted(zip(predicted_probs, predicted_labels), reverse=True)
+            )
             predictions.append(
-                {
-                "labels": predicted_labels,
-                "probabilities": predicted_probs
-                }
+                {"labels": predicted_labels, "probabilities": predicted_probs}
             )
 
         return predictions
