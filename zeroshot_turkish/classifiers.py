@@ -319,7 +319,7 @@ class MLMZeroshotClassifier(ZeroshotClassifierBase):
         tokenizer = AutoTokenizer.from_pretrained(model_name, truncation_side="left")
 
         pipeline = FillMaskPipelineWithPreprocessParams(
-            model=model, tokenizer=tokenizer, device=0
+            model=model, tokenizer=tokenizer, device=device
         )
 
         self.mask_token = tokenizer.mask_token
