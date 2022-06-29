@@ -12,7 +12,7 @@ with open("requirements.txt") as requirements_file:
 version = "0.0.0"
 
 setup(
-    name="zeroshot_classification",
+    name="zeroshot_turkish",
     version=version,
     description="A package for my thesis on Evaluating Zero-shot Classification Methods in Turkish.",
     python_requires=">=3.8",
@@ -26,8 +26,8 @@ setup(
     include_package_data=True,
     packages=find_packages(
         include=[
-            "zeroshot_classification",
-            "zeroshot_classification.*",
+            "zeroshot_turkish",
+            "zeroshot_turkish.*",
         ]
     ),
     zip_safe=False,

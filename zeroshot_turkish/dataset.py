@@ -19,8 +19,8 @@ from datasets import load_dataset
 from datasets import Dataset as HFDataset
 from datasets.dataset_dict import DatasetDict as HFDatasetDict
 
-from zeroshot_classification.config import DATA_DIR, PLOTS_DIR
-from zeroshot_classification.preprocess import Preprocessor
+from zeroshot_turkish.config import DATA_DIR, PLOTS_DIR
+from zeroshot_turkish.preprocess import Preprocessor
 
 from nltk.tokenize import word_tokenize
 

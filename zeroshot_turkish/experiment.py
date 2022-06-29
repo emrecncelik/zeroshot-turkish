@@ -11,14 +11,14 @@ from sklearn.metrics import (
     ConfusionMatrixDisplay,
 )
 
-from zeroshot_classification.classifiers import (
+from zeroshot_turkish.classifiers import (
     NSPZeroshotClassifier,
     NLIZeroshotClassifier,
     MLMZeroshotClassifier,
 )
-from zeroshot_classification.config import DATASETS, TEMPLATES, MODELS
-from zeroshot_classification.dataset import Dataset
-from zeroshot_classification.utils import serialize
+from zeroshot_turkish.config import DATASETS, TEMPLATES, MODELS
+from zeroshot_turkish.dataset import Dataset
+from zeroshot_turkish.utils import serialize
 
 
 class Experiment:

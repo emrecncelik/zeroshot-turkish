@@ -19,8 +19,8 @@ from transformers import (
 )
 from transformers.pipelines import FillMaskPipeline, base
 
-from zeroshot_classification.config import device
-from zeroshot_classification.dataset import Dataset
+from zeroshot_turkish.config import device
+from zeroshot_turkish.dataset import Dataset
 
 
 class ZeroshotMLMDataset(PTDataset):
