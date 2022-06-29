@@ -1,3 +1,4 @@
+git+https://github.com/emres/turkish-deasciifier.git@master#egg=turkish-deasciifier
 absl-py==1.0.0
 aiohttp==3.8.0
 aiosignal==1.2.0
