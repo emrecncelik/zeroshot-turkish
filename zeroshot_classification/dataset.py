@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 # Python stuff
+import string
 import os
 import pickle
 from loguru import logger
@@ -15,7 +16,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 # Hugging Face
-from datasets import load_dataset
+from datasets import Value, load_dataset
 from datasets import Dataset as HFDataset
 from datasets.dataset_dict import DatasetDict as HFDatasetDict
 
@@ -32,6 +33,11 @@ font = {"family": "normal", "size": 14}
 matplotlib.rc("font", **font)
 matplotlib.rcParams["figure.figsize"] = (10, 8)
 
+def filter_only_punct_num_or_empty(text):
+    text = text.strip()
+    if text == "" or all([True if t in string.punctuation or t.isdigit() else False for t in text]):
+        return False
+    return True
 
 class Dataset:
     dataset: HFDatasetDict
@@ -183,7 +189,16 @@ class Dataset:
         logger.debug(f"\tAfter:")
         for example in self.dataset["train"][column][:3]:
             logger.debug(f"\t{str(example)[:70]}")
+      
+        return self
 
+    def filter(self, n_examples: int = None):
+        self.dataset = self.dataset.filter(filter_only_punct_num_or_empty, input_columns=["text"])
+        if n_examples:
+            self.dataset["train"] = self.dataset["train"].select(range(n_examples))
+            if "test" in self.dataset:
+                self.dataset["test"] = self.dataset["test"].select(range(n_examples))
+            
         return self
 
     def map_labels(self):
@@ -210,9 +225,18 @@ class Dataset:
                 return example
 
             for split in self.dataset.keys():
-                self.dataset[split] = self.dataset[split].map(
-                    _map_label, num_proc=multiprocessing.cpu_count()
-                )
+                # Quick n dirty solution
+                try:
+                    self.dataset[split] = self.dataset[split].map(
+                        _map_label, num_proc=multiprocessing.cpu_count()
+                    )
+                except ValueError:
+                    new_features = self.dataset[split].features.copy()
+                    new_features[self.label_col] = Value("string")
+                    self.dataset[split] = self.dataset[split].cast(new_features)
+                    self.dataset[split] = self.dataset[split].map(
+                        _map_label, num_proc=multiprocessing.cpu_count()
+                    )
 
             logger.debug(f"\tAfter:")
             for example in self.dataset["train"][self.label_col][:3]:

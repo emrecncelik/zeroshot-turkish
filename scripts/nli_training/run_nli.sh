@@ -1,8 +1,8 @@
 #!/bin/bash
 source $1
 
-declare -a MODELS=("dbmdz/distilbert-base-turkish-cased" )
-declare -a DATASETS=("snli_tr" )
+declare -a MODELS=("dbmdz/convbert-base-turkish-cased" )
+declare -a DATASETS=("allnli_tr" )
 
 for MODEL in ${MODELS[@]}
 do

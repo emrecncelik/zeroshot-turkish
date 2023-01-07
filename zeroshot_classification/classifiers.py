@@ -22,6 +22,8 @@ from transformers.pipelines import FillMaskPipeline, base
 from zeroshot_classification.config import device
 from zeroshot_classification.dataset import Dataset
 
+device = torch.device(0 if torch.cuda.is_available() else "cpu")
+
 
 class ZeroshotMLMDataset(PTDataset):
     def __init__(self, texts: List[str], template: str, mask_token: str):
@@ -119,7 +121,7 @@ class NLIZeroshotClassifier(ZeroshotClassifierBase):
         super().__init__(model_name, random_state, **kwargs)
 
     def _init_model(self, model_name: str, **kwargs):
-        self.model = pipeline("zero-shot-classification", model=model_name, **kwargs)
+        self.model = pipeline("zero-shot-classification", model=model_name, device=device, **kwargs)
 
     def predict_on_dataset(
         self,
@@ -136,6 +138,7 @@ class NLIZeroshotClassifier(ZeroshotClassifierBase):
                 texts,
                 candidate_labels=candidate_labels,
                 hypothesis_template=prompt_template,
+                device=device,
                 **kwargs,
             )
             labels = []
